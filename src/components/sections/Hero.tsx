@@ -38,7 +38,7 @@ export function Hero() {
 
           <h1 className="fade-up font-serif text-5xl leading-[1.05] text-ink text-balance md:text-7xl" style={{ animationDelay: '0.18s' }}>
             {hero.title}{' '}
-            <span className="gradient-text-shine font-script text-6xl md:text-8xl">{hero.highlight}</span>
+            <span className="gradient-text-shine font-script text-5xl sm:text-6xl md:text-8xl">{hero.highlight}</span>
           </h1>
 
           <p className="fade-up mt-6 max-w-lg text-pretty text-lg text-ink-soft md:text-xl" style={{ animationDelay: '0.32s' }}>
