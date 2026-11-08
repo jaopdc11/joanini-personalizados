@@ -50,13 +50,14 @@ export function AdminLayout({ activePage, email, children }: Props) {
     <div className="flex min-h-screen flex-col bg-stone-50 md:flex-row">
 
       {/* Sidebar — só desktop */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-stone-200 bg-white">
+      {/* fixa na altura da tela: com muita foto a página rola, a sidebar não (e "Ver o site"/"Sair" ficam na base) */}
+      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-stone-200 bg-white md:sticky md:top-0 md:h-screen">
         <div className="border-b border-stone-100 px-5 py-5">
           <p className="font-semibold text-stone-800">Joanini Personalizados</p>
           <p className="text-xs text-stone-400">painel de gerenciamento</p>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 p-3">
+        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
           {navItems.map(({ id, label, hint, icon: Icon, href }) => (
             <a
               key={id}
