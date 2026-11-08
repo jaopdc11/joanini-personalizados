@@ -33,7 +33,7 @@ export function About() {
             <PhotoSlot
               variant="polaroid"
               aspect="4/5"
-              src={photo?.image_url ?? undefined}
+              src={photo?.url ?? undefined}
               alt="Foto"
               rotate={-2}
             />

@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { ImageUploader } from '@/admin/components/ImageUploader'
-import {
-  getSitePhoto,
-  updateSitePhoto,
-  clearSitePhoto,
-  uploadSiteImage,
-  type SitePhoto,
-} from '@/lib/site-photos.queries'
+import { getSitePhotos, setSitePhoto } from '@/lib/site-photos.queries'
+import { enviarImagem, mensagemErro } from '@/lib/api'
+import type { SitePhoto } from '@/types/database'
 
 type Slot = {
   id: string
@@ -38,21 +34,26 @@ type SlotState = {
   saving: boolean
   saved: boolean
   removing: boolean
+  progress: number | null
+  error: string
 }
 
 export function SitePhotosPage() {
   const [slots, setSlots] = useState<Record<string, SlotState>>(() =>
-    Object.fromEntries(SLOTS.map(s => [s.id, { photo: null, file: null, preview: null, saving: false, saved: false, removing: false }]))
+    Object.fromEntries(SLOTS.map(s => [s.id, { photo: null, file: null, preview: null, saving: false, saved: false, removing: false, progress: null, error: '' }]))
   )
 
   useEffect(() => {
-    SLOTS.forEach(async ({ id }) => {
-      const photo = await getSitePhoto(id)
-      setSlots(prev => ({
-        ...prev,
-        [id]: { ...prev[id], photo, preview: photo?.image_url ?? null },
-      }))
-    })
+    getSitePhotos(true).then(photos => {
+      setSlots(prev => {
+        const next = { ...prev }
+        SLOTS.forEach(({ id }) => {
+          const photo = photos[id] ?? null
+          next[id] = { ...prev[id], photo, preview: photo?.url ?? null }
+        })
+        return next
+      })
+    }).catch(() => {})
   }, [])
 
   function handleFile(slotId: string, file: File) {
@@ -66,42 +67,52 @@ export function SitePhotosPage() {
 
   async function handleSave(slotId: string) {
     const state = slots[slotId]
-    setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], saving: true, saved: false } }))
+    setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], saving: true, saved: false, error: '' } }))
 
     try {
       if (state.file) {
-        const { url, path } = await uploadSiteImage(state.file)
-        await updateSitePhoto(slotId, url, path)
+        setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], progress: 0 } }))
+        const enviada = await enviarImagem(state.file, f =>
+          setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], progress: f } })))
+        await setSitePhoto(slotId, enviada.id)
         setSlots(prev => ({
           ...prev,
-          [slotId]: { ...prev[slotId], file: null, photo: { ...prev[slotId].photo!, image_url: url, storage_path: path, slot: slotId, updated_at: new Date().toISOString() }, saved: true },
+          [slotId]: { ...prev[slotId], file: null, photo: { url: enviada.url, mini_url: enviada.mini_url }, saved: true },
         }))
-      } else if (!state.preview && state.photo?.image_url) {
-        await clearSitePhoto(slotId, state.photo.storage_path)
+      } else if (!state.preview && state.photo?.url) {
+        await setSitePhoto(slotId, null)
         setSlots(prev => ({
           ...prev,
           [slotId]: { ...prev[slotId], photo: null, saved: true },
         }))
       }
+      getSitePhotos(true).catch(() => {})
+    } catch (e) {
+      setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], error: mensagemErro(e) } }))
     } finally {
-      setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], saving: false } }))
+      setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], saving: false, progress: null } }))
       setTimeout(() => setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], saved: false } })), 2000)
     }
   }
 
   async function handleRemove(slotId: string) {
     const state = slots[slotId]
-    if (!state.photo?.image_url) return
+    if (!state.photo?.url) return
     if (!confirm('Remover a foto? Esta ação não pode ser desfeita.')) return
-    setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], removing: true } }))
-    await clearSitePhoto(slotId, state.photo!.storage_path)
-    setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], photo: null, preview: null, file: null, removing: false } }))
+    setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], removing: true, error: '' } }))
+    try {
+      await setSitePhoto(slotId, null)
+      getSitePhotos(true).catch(() => {})
+      setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], photo: null, preview: null, file: null, removing: false } }))
+    } catch (e) {
+      setSlots(prev => ({ ...prev, [slotId]: { ...prev[slotId], removing: false, error: mensagemErro(e, 'Erro ao remover. Tente novamente.') } }))
+    }
   }
 
   function isDirty(slotId: string) {
     const s = slots[slotId]
     if (s.file) return true
-    if (!s.preview && s.photo?.image_url) return true
+    if (!s.preview && s.photo?.url) return true
     return false
   }
 
@@ -122,12 +133,13 @@ export function SitePhotosPage() {
                 <p className="text-xs text-stone-400">{slot.description}</p>
               </div>
 
-              <div className="flex gap-8 items-start">
+              <div className="flex flex-col gap-6 sm:flex-row sm:gap-8 sm:items-start">
                 {/* uploader */}
                 <div className="flex flex-col gap-3">
                   <p className="text-xs font-medium uppercase tracking-wider text-stone-400">Upload</p>
                   <ImageUploader
-                    currentUrl={state.photo?.image_url}
+                    key={state.photo?.url ?? 'vazio'}
+                    currentUrl={state.photo?.url}
                     onFile={f => handleFile(slot.id, f)}
                     onClear={() => handleClear(slot.id)}
                   />
@@ -178,15 +190,15 @@ export function SitePhotosPage() {
                 </div>
 
                 {/* botões */}
-                <div className="flex flex-col gap-2 justify-end h-full pt-6">
+                <div className="flex flex-row gap-2 sm:flex-col sm:justify-end sm:h-full sm:pt-6">
                   <button
                     onClick={() => handleSave(slot.id)}
                     disabled={!isDirty(slot.id) || state.saving}
                     className="rounded-lg bg-rose-400 px-4 py-2 text-sm font-medium text-white hover:bg-rose-500 disabled:opacity-40 transition min-w-[100px] text-center"
                   >
-                    {state.saving ? 'Salvando…' : state.saved ? 'Salvo ✓' : 'Salvar'}
+                    {state.saving ? (state.progress !== null && state.progress < 1 ? `Enviando ${Math.round(state.progress * 100)}%…` : 'Salvando…') : state.saved ? 'Salvo ✓' : 'Salvar'}
                   </button>
-                  {state.photo?.image_url && (
+                  {state.photo?.url && (
                     <button
                       onClick={() => handleRemove(slot.id)}
                       disabled={state.removing}
@@ -198,6 +210,7 @@ export function SitePhotosPage() {
                   )}
                 </div>
               </div>
+              {state.error && <p className="mt-3 text-sm text-red-500">{state.error}</p>}
             </div>
           )
         })}

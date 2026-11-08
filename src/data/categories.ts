@@ -1,10 +1,22 @@
 import {
-  Mail,
   Gift,
   BookOpen,
-  Cake,
   Tag,
   Package,
+  PackageOpen,
+  Sparkles,
+  KeyRound,
+  Badge,
+  NotebookPen,
+  StickyNote,
+  Sticker,
+  Shirt,
+  Bookmark,
+  Calendar,
+  BookHeart,
+  Boxes,
+  ChefHat,
+  Album,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -16,12 +28,6 @@ export type Category = {
 }
 
 export const categories: Category[] = [
-  {
-    id: 'convites',
-    title: 'Convites personalizados',
-    description: 'Casamento, batizado, chá de bebê e aniversário com identidade só sua.',
-    icon: Mail,
-  },
   {
     id: 'lembrancinhas',
     title: 'Lembrancinhas',
@@ -35,12 +41,6 @@ export const categories: Category[] = [
     icon: BookOpen,
   },
   {
-    id: 'topo',
-    title: 'Topo de bolo',
-    description: 'Aquele detalhe que arremata a foto e a memória do dia.',
-    icon: Cake,
-  },
-  {
     id: 'cartoes',
     title: 'Cartões & tags',
     description: 'Pra acompanhar presente, agradecimento ou só um “pensei em você”.',
@@ -51,5 +51,89 @@ export const categories: Category[] = [
     title: 'Cartonagem',
     description: 'Caixinhas, álbuns e estojos forrados à mão — papel, tecido e muito capricho.',
     icon: Package,
+  },
+  {
+    id: 'embalagens',
+    title: 'Embalagens',
+    description: '',
+    icon: PackageOpen,
+  },
+  {
+    id: 'brindes',
+    title: 'Brindes',
+    description: '',
+    icon: Sparkles,
+  },
+  {
+    id: 'chaveiros',
+    title: 'Chaveiros',
+    description: '',
+    icon: KeyRound,
+  },
+  {
+    id: 'bottons',
+    title: 'Bottons',
+    description: '',
+    icon: Badge,
+  },
+  {
+    id: 'agendas',
+    title: 'Agendas',
+    description: '',
+    icon: NotebookPen,
+  },
+  {
+    id: 'blocos',
+    title: 'Blocos',
+    description: '',
+    icon: StickyNote,
+  },
+  {
+    id: 'etiquetas',
+    title: 'Etiquetas',
+    description: '',
+    icon: Sticker,
+  },
+  {
+    id: 'toalhas',
+    title: 'Toalhas sublimadas',
+    description: '',
+    icon: Shirt,
+  },
+  {
+    id: 'marca-paginas',
+    title: 'Marca páginas',
+    description: '',
+    icon: Bookmark,
+  },
+  {
+    id: 'calendarios',
+    title: 'Calendários',
+    description: '',
+    icon: Calendar,
+  },
+  {
+    id: 'caderneta-saude',
+    title: 'Caderneta de Saúde',
+    description: '',
+    icon: BookHeart,
+  },
+  {
+    id: 'kits',
+    title: 'Kits',
+    description: '',
+    icon: Boxes,
+  },
+  {
+    id: 'receitas',
+    title: 'Receitas',
+    description: '',
+    icon: ChefHat,
+  },
+  {
+    id: 'albuns',
+    title: 'Álbuns',
+    description: '',
+    icon: Album,
   },
 ]

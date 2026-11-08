@@ -9,6 +9,7 @@ export function useGallery() {
   useEffect(() => {
     listPublishedGalleryItems()
       .then(setItems)
+      .catch(() => setItems([]))
       .finally(() => setLoading(false))
   }, [])
 

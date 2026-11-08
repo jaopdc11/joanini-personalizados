@@ -6,10 +6,17 @@ export type GalleryItem = {
   category: string
   span: Span
   image_url: string | null
-  storage_path: string | null
+  mini_url?: string | null
+  imagem_id?: string | null
   sort_order: number
   published: boolean
   created_at: string
+}
+
+export type ProductImage = {
+  id?: string
+  url: string
+  mini_url: string
 }
 
 export type Product = {
@@ -18,8 +25,7 @@ export type Product = {
   description: string | null
   category: string
   price_brl: number | null
-  image_url: string | null
-  storage_path: string | null
+  images: ProductImage[]
   available: boolean
   created_at: string
 }
@@ -37,19 +43,4 @@ export type Testimonial = {
   created_at: string
 }
 
-export type Database = {
-  public: {
-    Tables: {
-      gallery_items: {
-        Row: GalleryItem
-        Insert: Omit<GalleryItem, 'id' | 'created_at'>
-        Update: Partial<Omit<GalleryItem, 'id' | 'created_at'>>
-      }
-      products: {
-        Row: Product
-        Insert: Omit<Product, 'id' | 'created_at'>
-        Update: Partial<Omit<Product, 'id' | 'created_at'>>
-      }
-    }
-  }
-}
+export type SitePhoto = { url: string; mini_url: string }

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ImageUploader } from '@/admin/components/ImageUploader'
-import { uploadGalleryImage, insertGalleryItem, updateGalleryItem } from '@/lib/gallery.queries'
+import { insertGalleryItem, updateGalleryItem } from '@/lib/gallery.queries'
+import { enviarImagem, idDaImagem, mensagemErro } from '@/lib/api'
 import type { GalleryItem, Span } from '@/types/database'
 import { categories } from '@/data/categories'
 
@@ -19,6 +20,7 @@ export function GalleryItemForm({ item, onSaved, onCancel }: Props) {
   const [clearImage, setClearImage] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [progress, setProgress] = useState<number | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -26,42 +28,41 @@ export function GalleryItemForm({ item, onSaved, onCancel }: Props) {
     setSaving(true)
 
     try {
-      let image_url = item?.image_url ?? null
-      let storage_path = item?.storage_path ?? null
+      let imagem_id = item ? item.imagem_id ?? idDaImagem(item.image_url) : null
 
       if (file) {
-        const uploaded = await uploadGalleryImage(file)
-        image_url = uploaded.url
-        storage_path = uploaded.path
+        setProgress(0)
+        const enviada = await enviarImagem(file, setProgress)
+        imagem_id = enviada.id
       } else if (clearImage) {
-        image_url = null
-        storage_path = null
+        imagem_id = null
       }
 
       if (item) {
-        await updateGalleryItem(item.id, { title, category, span, published, image_url, storage_path })
+        await updateGalleryItem(item.id, { title, category, span, published, imagem_id, sort_order: item.sort_order })
       } else {
-        await insertGalleryItem({ title, category, span, published, image_url, storage_path, sort_order: 0 })
+        await insertGalleryItem({ title, category, span, published, imagem_id, sort_order: 0 })
       }
 
       onSaved()
-    } catch {
-      setError('Erro ao salvar. Tente novamente.')
+    } catch (e) {
+      setError(mensagemErro(e))
     } finally {
       setSaving(false)
+      setProgress(null)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <div className="flex gap-6">
+      <div className="flex flex-col gap-5 sm:flex-row sm:gap-6">
         <ImageUploader
           currentUrl={item?.image_url}
           onFile={f => { setFile(f); setClearImage(false) }}
           onClear={() => { setFile(null); setClearImage(true) }}
         />
 
-        <div className="flex flex-1 flex-col gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-stone-600">Título</label>
             <input
@@ -69,17 +70,17 @@ export function GalleryItemForm({ item, onSaved, onCancel }: Props) {
               onChange={e => setTitle(e.target.value)}
               required
               placeholder="ex: Convite de batizado · Helena"
-              className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+              className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
             />
           </div>
 
-          <div className="flex gap-3">
-            <div className="flex flex-1 flex-col gap-1">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <label className="text-sm font-medium text-stone-600">Categoria</label>
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
               >
                 {categories.map(c => (
                   <option key={c.id} value={c.id}>{c.title}</option>
@@ -87,12 +88,12 @@ export function GalleryItemForm({ item, onSaved, onCancel }: Props) {
               </select>
             </div>
 
-            <div className="flex flex-1 flex-col gap-1">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <label className="text-sm font-medium text-stone-600">Formato</label>
               <select
                 value={span}
                 onChange={e => setSpan(e.target.value as Span)}
-                className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
               >
                 <option value="normal">Normal (quadrado)</option>
                 <option value="tall">Alto (retrato)</option>
@@ -124,7 +125,7 @@ export function GalleryItemForm({ item, onSaved, onCancel }: Props) {
           disabled={saving}
           className="rounded-lg bg-rose-400 px-5 py-2 text-sm font-medium text-white hover:bg-rose-500 disabled:opacity-50"
         >
-          {saving ? 'Salvando…' : item ? 'Salvar alterações' : 'Adicionar'}
+          {saving ? (progress !== null && progress < 1 ? `Enviando ${Math.round(progress * 100)}%…` : 'Salvando…') : item ? 'Salvar alterações' : 'Adicionar'}
         </button>
       </div>
     </form>

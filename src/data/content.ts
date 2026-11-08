@@ -170,7 +170,7 @@ export const faq = {
     },
     {
       q: 'Como funciona o pagamento?',
-      a: 'Trabalho com sinal de 50% pra começar a produção e o restante na entrega. Aceito Pix, transferência e dinheiro. Pra pedidos maiores, dá pra parcelar — só me perguntar.',
+      a: 'Trabalho com sinal de 50% pra começar a produção e o restante na entrega. Aceito Pix, transferência, dinheiro, cartão de débito e cartão de crédito (número de parcelas a combinar). O acerto é feito direto comigo — não tem pagamento aqui pelo site. Emito nota fiscal sempre que você precisar. Qualquer dúvida, é só me chamar no WhatsApp.',
     },
     {
       q: 'Você atende quais cidades?',

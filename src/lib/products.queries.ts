@@ -1,56 +1,33 @@
-import { supabase } from '@/lib/supabase'
-import type { Product } from '@/types/database'
+import { api, idDaImagem } from '@/lib/api'
+import type { Product, ProductImage } from '@/types/database'
 
-export async function listProducts() {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data as Product[]
-}
-
-export async function insertProduct(product: {
+export type ProductInput = {
   name: string
   description: string | null
   category: string
   price_brl: number | null
-  image_url: string | null
-  storage_path: string | null
+  imagem_ids: string[]
   available: boolean
-}) {
-  const { data, error } = await supabase
-    .from('products')
-    .insert(product)
-    .select()
-    .single()
-  if (error) throw error
-  return data as Product
 }
 
-export async function updateProduct(id: string, product: Partial<Product>) {
-  const { error } = await supabase
-    .from('products')
-    .update(product)
-    .eq('id', id)
-  if (error) throw error
+export const listProducts = () => api.get<Product[]>('/admin/produtos')
+export const listAvailableProducts = () => api.get<Product[]>('/produtos')
+
+export const insertProduct = (p: ProductInput) => api.post<Product>('/admin/produtos', p)
+export const updateProduct = (id: string, p: ProductInput) => api.put<Product>(`/admin/produtos/${id}`, p)
+export const removeProduct = (id: string) => api.del(`/admin/produtos/${id}`)
+
+export function imageId(img: ProductImage): string | null {
+  return img.id ?? idDaImagem(img.url)
 }
 
-export async function removeProduct(id: string, storagePath: string | null) {
-  if (storagePath) {
-    await supabase.storage.from('products').remove([storagePath])
+export function productInput(p: Product): ProductInput {
+  return {
+    name: p.name,
+    description: p.description,
+    category: p.category,
+    price_brl: p.price_brl,
+    imagem_ids: (p.images ?? []).map(imageId).filter((x): x is string => !!x),
+    available: p.available,
   }
-  const { error } = await supabase.from('products').delete().eq('id', id)
-  if (error) throw error
-}
-
-export async function uploadProductImage(file: File): Promise<{ url: string; path: string }> {
-  const ext = file.name.split('.').pop()
-  const path = `${crypto.randomUUID()}.${ext}`
-
-  const { error } = await supabase.storage.from('products').upload(path, file)
-  if (error) throw error
-
-  const { data } = supabase.storage.from('products').getPublicUrl(path)
-  return { url: data.publicUrl, path }
 }

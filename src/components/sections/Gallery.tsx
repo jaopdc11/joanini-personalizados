@@ -71,7 +71,7 @@ function GalleryCard({ item, idx }: CardProps) {
         <PhotoSlot
           variant="polaroid"
           aspect={aspectFor(item.span) as '1/1' | '3/4' | '5/4'}
-          src={item.image_url ?? undefined}
+          src={item.mini_url ?? item.image_url ?? undefined}
           alt={item.title}
           caption={`~ ${caption} ~`}
           rotate={rotate}

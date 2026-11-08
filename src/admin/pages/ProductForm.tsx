@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { ImageUploader } from '@/admin/components/ImageUploader'
-import { uploadProductImage, insertProduct, updateProduct } from '@/lib/products.queries'
-import type { Product } from '@/types/database'
+import { MultiImageUploader } from '@/admin/components/MultiImageUploader'
+import { insertProduct, updateProduct, imageId } from '@/lib/products.queries'
+import { enviarImagem, mensagemErro } from '@/lib/api'
+
+const MAX_IMAGES = 20
+import type { Product, ProductImage } from '@/types/database'
 import { categories } from '@/data/categories'
 
 type Props = {
@@ -10,61 +13,79 @@ type Props = {
   onCancel: () => void
 }
 
+function initialImages(product?: Product): ProductImage[] {
+  return product?.images ?? []
+}
+
 export function ProductForm({ product, onSaved, onCancel }: Props) {
   const [name, setName] = useState(product?.name ?? '')
   const [description, setDescription] = useState(product?.description ?? '')
   const [category, setCategory] = useState(product?.category ?? categories[0].id)
   const [priceStr, setPriceStr] = useState(product?.price_brl != null ? String(product.price_brl) : '')
   const [available, setAvailable] = useState(product?.available ?? true)
-  const [file, setFile] = useState<File | null>(null)
-  const [clearImage, setClearImage] = useState(false)
+  const [existingImages, setExistingImages] = useState<ProductImage[]>(() => initialImages(product))
+  const [newFiles, setNewFiles] = useState<File[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [progress, setProgress] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+
+    if (existingImages.length + newFiles.length > MAX_IMAGES) {
+      setError(`No máximo ${MAX_IMAGES} fotos por produto.`)
+      return
+    }
+
     setSaving(true)
 
     try {
-      let image_url = product?.image_url ?? null
-      let storage_path = product?.storage_path ?? null
-
-      if (file) {
-        const uploaded = await uploadProductImage(file)
-        image_url = uploaded.url
-        storage_path = uploaded.path
-      } else if (clearImage) {
-        image_url = null
-        storage_path = null
+      const novosIds: string[] = []
+      for (let i = 0; i < newFiles.length; i++) {
+        const prefixo = newFiles.length > 1 ? `${i + 1}/${newFiles.length} ` : ''
+        setProgress(`${prefixo}0%`)
+        const enviada = await enviarImagem(newFiles[i], f => setProgress(`${prefixo}${Math.round(f * 100)}%`))
+        novosIds.push(enviada.id)
       }
+      setProgress(null)
+
+      const imagem_ids = [
+        ...existingImages.map(imageId).filter((x): x is string => !!x),
+        ...novosIds,
+      ]
 
       const price_brl = priceStr.trim() === '' ? null : parseFloat(priceStr.replace(',', '.'))
+      const input = { name, description: description || null, category, price_brl, available, imagem_ids }
 
       if (product) {
-        await updateProduct(product.id, { name, description: description || null, category, price_brl, available, image_url, storage_path })
+        await updateProduct(product.id, input)
       } else {
-        await insertProduct({ name, description: description || null, category, price_brl, available, image_url, storage_path })
+        await insertProduct(input)
       }
 
       onSaved()
-    } catch {
-      setError('Erro ao salvar. Tente novamente.')
+    } catch (e) {
+      setError(mensagemErro(e))
     } finally {
       setSaving(false)
+      setProgress(null)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <div className="flex gap-6">
-        <ImageUploader
-          currentUrl={product?.image_url}
-          onFile={f => { setFile(f); setClearImage(false) }}
-          onClear={() => { setFile(null); setClearImage(true) }}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium text-stone-600">Fotos</label>
+        <MultiImageUploader
+          existing={initialImages(product)}
+          onChange={(kept, files) => { setExistingImages(kept); setNewFiles(files) }}
         />
+        <p className="text-xs text-stone-400">A primeira foto é a capa. Você pode adicionar até 20.</p>
+      </div>
 
-        <div className="flex flex-1 flex-col gap-4">
+      <div className="flex flex-col gap-5 sm:flex-row sm:gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-stone-600">Nome do produto</label>
             <input
@@ -72,17 +93,17 @@ export function ProductForm({ product, onSaved, onCancel }: Props) {
               onChange={e => setName(e.target.value)}
               required
               placeholder="ex: Convite de batizado personalizado"
-              className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+              className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
             />
           </div>
 
-          <div className="flex gap-3">
-            <div className="flex flex-1 flex-col gap-1">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <label className="text-sm font-medium text-stone-600">Categoria</label>
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
               >
                 {categories.map(c => (
                   <option key={c.id} value={c.id}>{c.title}</option>
@@ -90,7 +111,7 @@ export function ProductForm({ product, onSaved, onCancel }: Props) {
               </select>
             </div>
 
-            <div className="flex flex-1 flex-col gap-1">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <label className="text-sm font-medium text-stone-600">Preço (R$)</label>
               <input
                 value={priceStr}
@@ -98,7 +119,7 @@ export function ProductForm({ product, onSaved, onCancel }: Props) {
                 placeholder="deixe vazio = sob consulta"
                 type="text"
                 inputMode="decimal"
-                className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
               />
             </div>
           </div>
@@ -122,7 +143,7 @@ export function ProductForm({ product, onSaved, onCancel }: Props) {
           onChange={e => setDescription(e.target.value)}
           rows={3}
           placeholder="Descreva o produto, materiais, tamanho, etc."
-          className="rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+          className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
         />
       </div>
 
@@ -137,7 +158,7 @@ export function ProductForm({ product, onSaved, onCancel }: Props) {
           disabled={saving}
           className="rounded-lg bg-rose-400 px-5 py-2 text-sm font-medium text-white hover:bg-rose-500 disabled:opacity-50"
         >
-          {saving ? 'Salvando…' : product ? 'Salvar alterações' : 'Adicionar'}
+          {saving ? (progress ? `Enviando ${progress}…` : 'Salvando…') : product ? 'Salvar alterações' : 'Adicionar'}
         </button>
       </div>
     </form>

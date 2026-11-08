@@ -30,6 +30,17 @@
     <meta name="apple-mobile-web-app-title" content="Joanini" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Restaura path após redirect do 404.html (SPA fallback para GitHub Pages) -->
+    <script>
+      ;(function () {
+        var q = window.location.search
+        if (q && q[1] === '/') {
+          var path = q.slice(2).split('&').map(function (s) { return s.replace(/~and~/g, '&') }).join('?')
+          window.history.replaceState(null, null, '/' + path + window.location.hash)
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

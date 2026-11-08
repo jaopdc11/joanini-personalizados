@@ -82,7 +82,7 @@ export function Hero() {
 
         <div className="fade-up relative mx-auto w-full max-w-md" style={{ animationDelay: '0.3s' }}>
           <PhotoSlot
-            src={photo?.image_url ?? '/joanini.jpeg'}
+            src={photo?.url ?? '/joanini.jpeg'}
             alt="Trabalho artesanal da Joanini"
             aspect="4/5"
             variant="frame"

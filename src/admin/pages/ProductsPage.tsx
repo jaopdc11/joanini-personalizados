@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
-import { listProducts, removeProduct, updateProduct } from '@/lib/products.queries'
+import { listProducts, removeProduct, updateProduct, productInput } from '@/lib/products.queries'
 import { ProductForm } from '@/admin/pages/ProductForm'
 import { ConfirmDialog } from '@/admin/components/ConfirmDialog'
 import type { Product } from '@/types/database'
@@ -22,13 +22,13 @@ export function ProductsPage() {
   useEffect(() => { load() }, [])
 
   async function handleToggleAvailable(product: Product) {
-    await updateProduct(product.id, { available: !product.available })
+    await updateProduct(product.id, { ...productInput(product), available: !product.available })
     setProducts(prev => prev.map(p => p.id === product.id ? { ...p, available: !p.available } : p))
   }
 
   async function handleDelete() {
     if (!deleting) return
-    await removeProduct(deleting.id, deleting.storage_path)
+    await removeProduct(deleting.id)
     setProducts(prev => prev.filter(p => p.id !== deleting.id))
     setDeleting(null)
   }
@@ -94,14 +94,14 @@ export function ProductsPage() {
           <p className="mt-1 text-xs">Clique em "Novo produto" para começar.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-stone-200">
+        <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-stone-200">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-stone-100 text-left text-xs font-medium uppercase tracking-wide text-stone-400">
                 <th className="px-4 py-3">Foto</th>
                 <th className="px-4 py-3">Nome</th>
-                <th className="px-4 py-3">Categoria</th>
-                <th className="px-4 py-3">Preço</th>
+                <th className="hidden sm:table-cell px-4 py-3">Categoria</th>
+                <th className="hidden sm:table-cell px-4 py-3">Preço</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -110,11 +110,18 @@ export function ProductsPage() {
               {products.map(product => (
                 <tr key={product.id} className="border-b border-stone-50 last:border-0 hover:bg-stone-50">
                   <td className="px-4 py-3">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="h-12 w-12 rounded-lg object-cover" />
-                    ) : (
-                      <div className="h-12 w-12 rounded-lg bg-stone-100" />
-                    )}
+                    <div className="relative h-12 w-12">
+                      {product.images?.[0] ? (
+                        <img src={product.images[0].mini_url} alt={product.name} className="h-12 w-12 rounded-lg object-cover" />
+                      ) : (
+                        <div className="h-12 w-12 rounded-lg bg-stone-100" />
+                      )}
+                      {product.images?.length > 1 && (
+                        <span className="absolute -bottom-1 -right-1 rounded-full bg-stone-700 px-1.5 py-0.5 text-[10px] font-medium leading-none text-white ring-2 ring-white">
+                          {product.images.length}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-medium text-stone-700">{product.name}</p>
@@ -122,8 +129,8 @@ export function ProductsPage() {
                       <p className="mt-0.5 line-clamp-1 text-xs text-stone-400">{product.description}</p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-stone-500">{product.category}</td>
-                  <td className="px-4 py-3 text-stone-600">{formatPrice(product.price_brl)}</td>
+                  <td className="hidden sm:table-cell px-4 py-3 text-stone-500">{product.category}</td>
+                  <td className="hidden sm:table-cell px-4 py-3 text-stone-600">{formatPrice(product.price_brl)}</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => handleToggleAvailable(product)}

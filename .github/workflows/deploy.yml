@@ -21,10 +21,8 @@ jobs:
 
       - run: npm ci
 
+      # a URL da API (jpersonalizados.api.jaopd.dev) é o padrão do código; nada de segredo no build
       - run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - run: cp dist/index.html dist/404.html
 

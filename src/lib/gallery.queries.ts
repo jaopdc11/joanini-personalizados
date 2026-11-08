@@ -1,68 +1,35 @@
-import { supabase } from '@/lib/supabase'
-import type { GalleryItem } from '@/types/database'
+import { api, idDaImagem } from '@/lib/api'
+import type { GalleryItem, Span } from '@/types/database'
 
-export async function listGalleryItems() {
-  const { data, error } = await supabase
-    .from('gallery_items')
-    .select('*')
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data as GalleryItem[]
-}
-
-export async function listPublishedGalleryItems() {
-  const { data, error } = await supabase
-    .from('gallery_items')
-    .select('*')
-    .eq('published', true)
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data as GalleryItem[]
-}
-
-export async function insertGalleryItem(item: {
+export type GalleryItemInput = {
   title: string
   category: string
-  span: 'tall' | 'wide' | 'normal'
-  image_url: string | null
-  storage_path: string | null
+  span: Span
+  imagem_id: string | null
   sort_order: number
   published: boolean
-}) {
-  const { data, error } = await supabase
-    .from('gallery_items')
-    .insert(item)
-    .select()
-    .single()
-  if (error) throw error
-  return data as GalleryItem
 }
 
-export async function updateGalleryItem(id: string, item: Partial<GalleryItem>) {
-  const { error } = await supabase
-    .from('gallery_items')
-    .update(item)
-    .eq('id', id)
-  if (error) throw error
-}
+export const listGalleryItems = () => api.get<GalleryItem[]>('/admin/galeria')
+export const listPublishedGalleryItems = () => api.get<GalleryItem[]>('/galeria')
 
-export async function removeGalleryItem(id: string, storagePath: string | null) {
-  if (storagePath) {
-    await supabase.storage.from('gallery').remove([storagePath])
+export const insertGalleryItem = (item: GalleryItemInput) => api.post<GalleryItem>('/admin/galeria', item)
+
+export const updateGalleryItem = (id: string, item: GalleryItemInput) =>
+  api.put<GalleryItem>(`/admin/galeria/${id}`, item)
+
+export const removeGalleryItem = (id: string) => api.del(`/admin/galeria/${id}`)
+
+export const reorderGalleryItems = (ids: string[]) => api.post('/admin/galeria/reordenar', { ids })
+
+// PUT manda o item inteiro: assim um toggle não depende de a API aceitar parcial
+export function galleryInput(item: GalleryItem): GalleryItemInput {
+  return {
+    title: item.title,
+    category: item.category,
+    span: item.span,
+    imagem_id: item.imagem_id ?? idDaImagem(item.image_url),
+    sort_order: item.sort_order,
+    published: item.published,
   }
-  const { error } = await supabase.from('gallery_items').delete().eq('id', id)
-  if (error) throw error
-}
-
-export async function uploadGalleryImage(file: File): Promise<{ url: string; path: string }> {
-  const ext = file.name.split('.').pop()
-  const path = `${crypto.randomUUID()}.${ext}`
-
-  const { error } = await supabase.storage.from('gallery').upload(path, file)
-  if (error) throw error
-
-  const { data } = supabase.storage.from('gallery').getPublicUrl(path)
-  return { url: data.publicUrl, path }
 }

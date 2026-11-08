@@ -1,25 +1,23 @@
 import { useEffect, useState } from 'react'
-import type { Session } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { api, aoMudarSessao, type Usuario } from '@/lib/api'
 
 export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null)
+  const [usuario, setUsuario] = useState<Usuario | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      setLoading(false)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    return () => subscription.unsubscribe()
+    let vivo = true
+    api
+      .get<Usuario>('/auth/eu')
+      .then((u) => vivo && setUsuario(u))
+      .catch(() => vivo && setUsuario(null))
+      .finally(() => vivo && setLoading(false))
+    const desligar = aoMudarSessao(setUsuario)
+    return () => {
+      vivo = false
+      desligar()
+    }
   }, [])
 
-  const isDev = session?.user?.app_metadata?.is_dev === true
-
-  return { session, loading, isDev }
+  return { usuario, loading }
 }

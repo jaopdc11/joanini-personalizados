@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { entrar, ErroApi } from '@/lib/api'
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
@@ -11,9 +11,16 @@ export function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setError('E-mail ou senha incorretos.')
-    setLoading(false)
+    try {
+      // sucesso avisa a sessão e o AdminApp troca de tela sozinho
+      await entrar(email, password)
+    } catch (e) {
+      if (e instanceof ErroApi && e.status === 429) setError('Muitas tentativas. Espere alguns minutos e tente de novo.')
+      else if (e instanceof ErroApi && (e.status === 401 || e.status === 400)) setError('E-mail ou senha incorretos.')
+      else setError('Não deu pra conectar. Tente de novo.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

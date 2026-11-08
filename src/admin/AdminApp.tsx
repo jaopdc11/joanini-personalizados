@@ -5,21 +5,21 @@ import { GalleryPage } from '@/admin/pages/GalleryPage'
 import { ProductsPage } from '@/admin/pages/ProductsPage'
 import { SitePhotosPage } from '@/admin/pages/SitePhotosPage'
 import { TestimonialsPage } from '@/admin/pages/TestimonialsPage'
-import { DevPage } from '@/admin/pages/DevPage'
+import { SenhaPage } from '@/admin/pages/SenhaPage'
 
-type AdminPage = 'gallery' | 'products' | 'site-photos' | 'testimonials' | 'dev'
+type AdminPage = 'gallery' | 'products' | 'site-photos' | 'testimonials' | 'senha'
 
 function currentPage(): AdminPage {
   const path = window.location.pathname
   if (path.includes('products')) return 'products'
   if (path.includes('site-photos')) return 'site-photos'
   if (path.includes('testimonials')) return 'testimonials'
-  if (path.includes('dev')) return 'dev'
+  if (path.includes('senha')) return 'senha'
   return 'gallery'
 }
 
 export function AdminApp() {
-  const { session, loading, isDev } = useAuth()
+  const { usuario, loading } = useAuth()
 
   if (loading) {
     return (
@@ -29,17 +29,17 @@ export function AdminApp() {
     )
   }
 
-  if (!session) return <LoginPage />
+  if (!usuario) return <LoginPage />
 
   const page = currentPage()
 
   return (
-    <AdminLayout activePage={page} isDev={isDev}>
+    <AdminLayout activePage={page} email={usuario.email}>
       {page === 'gallery' && <GalleryPage />}
       {page === 'products' && <ProductsPage />}
       {page === 'site-photos' && <SitePhotosPage />}
       {page === 'testimonials' && <TestimonialsPage />}
-      {page === 'dev' && isDev && <DevPage />}
+      {page === 'senha' && <SenhaPage />}
     </AdminLayout>
   )
 }

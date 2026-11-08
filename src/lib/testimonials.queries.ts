@@ -1,36 +1,16 @@
-import { supabase } from '@/lib/supabase'
+import { api } from '@/lib/api'
 import type { Testimonial } from '@/types/database'
 
-export async function listTestimonials(): Promise<Testimonial[]> {
-  const { data } = await supabase
-    .from('testimonials')
-    .select('*')
-    .order('created_at', { ascending: true })
-  return (data ?? []) as Testimonial[]
-}
+export type TestimonialInput = Omit<Testimonial, 'id' | 'created_at'>
 
-export async function listPublishedTestimonials(): Promise<Testimonial[]> {
-  const { data } = await supabase
-    .from('testimonials')
-    .select('*')
-    .eq('published', true)
-    .order('created_at', { ascending: true })
-  return (data ?? []) as Testimonial[]
-}
+export const listTestimonials = () => api.get<Testimonial[]>('/admin/depoimentos')
+export const listPublishedTestimonials = () => api.get<Testimonial[]>('/depoimentos')
+export const insertTestimonial = (v: TestimonialInput) => api.post<Testimonial>('/admin/depoimentos', v)
+export const updateTestimonial = (id: string, v: TestimonialInput) =>
+  api.put<Testimonial>(`/admin/depoimentos/${id}`, v)
+export const removeTestimonial = (id: string) => api.del(`/admin/depoimentos/${id}`)
 
-export async function insertTestimonial(
-  values: Omit<Testimonial, 'id' | 'created_at'>
-): Promise<void> {
-  await supabase.from('testimonials').insert(values)
-}
-
-export async function updateTestimonial(
-  id: string,
-  values: Partial<Omit<Testimonial, 'id' | 'created_at'>>
-): Promise<void> {
-  await supabase.from('testimonials').update(values).eq('id', id)
-}
-
-export async function removeTestimonial(id: string): Promise<void> {
-  await supabase.from('testimonials').delete().eq('id', id)
+export function testimonialInput(t: Testimonial): TestimonialInput {
+  const { id: _id, created_at: _c, ...resto } = t
+  return resto
 }

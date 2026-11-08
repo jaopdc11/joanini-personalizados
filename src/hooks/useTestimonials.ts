@@ -7,10 +7,10 @@ export function useTestimonials() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    listPublishedTestimonials().then(data => {
-      setItems(data)
-      setLoading(false)
-    })
+    listPublishedTestimonials()
+      .then(setItems)
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false))
   }, [])
 
   return { items, loading }

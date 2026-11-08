@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react'
-import { listGalleryItems, removeGalleryItem, updateGalleryItem } from '@/lib/gallery.queries'
+import { listGalleryItems, removeGalleryItem, updateGalleryItem, galleryInput } from '@/lib/gallery.queries'
 import { GalleryItemForm } from '@/admin/pages/GalleryItemForm'
 import { ConfirmDialog } from '@/admin/components/ConfirmDialog'
 import type { GalleryItem } from '@/types/database'
@@ -22,13 +22,13 @@ export function GalleryPage() {
   useEffect(() => { load() }, [])
 
   async function handleTogglePublished(item: GalleryItem) {
-    await updateGalleryItem(item.id, { published: !item.published })
+    await updateGalleryItem(item.id, { ...galleryInput(item), published: !item.published })
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, published: !i.published } : i))
   }
 
   async function handleDelete() {
     if (!deleting) return
-    await removeGalleryItem(deleting.id, deleting.storage_path)
+    await removeGalleryItem(deleting.id)
     setItems(prev => prev.filter(i => i.id !== deleting.id))
     setDeleting(null)
   }
@@ -94,14 +94,14 @@ export function GalleryPage() {
           <p className="mt-1 text-xs">Clique em "Adicionar foto" para colocar seu primeiro trabalho no site.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-stone-200">
+        <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-stone-200">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-stone-100 text-left text-xs font-medium uppercase tracking-wide text-stone-400">
                 <th className="px-4 py-3">Foto</th>
                 <th className="px-4 py-3">Título</th>
-                <th className="px-4 py-3">Categoria</th>
-                <th className="px-4 py-3">Formato</th>
+                <th className="hidden sm:table-cell px-4 py-3">Categoria</th>
+                <th className="hidden sm:table-cell px-4 py-3">Formato</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -111,14 +111,14 @@ export function GalleryPage() {
                 <tr key={item.id} className="border-b border-stone-50 last:border-0 hover:bg-stone-50">
                   <td className="px-4 py-3">
                     {item.image_url ? (
-                      <img src={item.image_url} alt={item.title} className="h-12 w-12 rounded-lg object-cover" />
+                      <img src={item.mini_url ?? item.image_url} alt={item.title} className="h-12 w-12 rounded-lg object-cover" />
                     ) : (
                       <div className="h-12 w-12 rounded-lg bg-stone-100" />
                     )}
                   </td>
                   <td className="px-4 py-3 font-medium text-stone-700">{item.title}</td>
-                  <td className="px-4 py-3 text-stone-500">{item.category}</td>
-                  <td className="px-4 py-3 text-stone-500">{spanLabel[item.span]}</td>
+                  <td className="hidden sm:table-cell px-4 py-3 text-stone-500">{item.category}</td>
+                  <td className="hidden sm:table-cell px-4 py-3 text-stone-500">{spanLabel[item.span]}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${item.published ? 'bg-emerald-50 text-emerald-600' : 'bg-stone-100 text-stone-400'}`}>
                       {item.published ? 'Publicado' : 'Oculto'}

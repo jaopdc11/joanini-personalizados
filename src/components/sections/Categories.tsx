@@ -28,7 +28,7 @@ export function Categories() {
                 <Icon strokeWidth={1.4} className="h-7 w-7" />
               </div>
               <h3 className="font-serif text-2xl text-ink">{title}</h3>
-              <p className="mt-2 text-ink-soft text-pretty">{description}</p>
+              {description && <p className="mt-2 text-ink-soft text-pretty">{description}</p>}
               <MiniHeart
                 className="absolute right-6 top-6 opacity-40 transition-opacity group-hover:opacity-100"
                 color="#FF9FB3"
