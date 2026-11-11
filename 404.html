@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+  <head>
+    <script>
+      // Redireciona /admin/xxx → /?/admin/xxx para que o index.html SPA possa restaurar o path
+      var l = window.location
+      l.replace(
+        l.protocol + '//' + l.host + '/?/' +
+        l.pathname.slice(1).replace(/&/g, '~and~') +
+        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      )
+    </script>
+  </head>
+</html>
